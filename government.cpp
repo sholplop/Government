@@ -158,11 +158,28 @@ TEST(GovernmentTest, InsufficientBudgetRejection) {
     return true;
 }
 
+TEST(GovernmentTest, MultiActionProject) {
+    ProjectRegistry registry;
+    std::vector<ProjectAction*> actions = {
+        new ApproveFunding(),
+        new AdjustBudget(750000),
+        new CompleteProject()
+    };
+    GovernmentProject* library = new GovernmentProject("Central Library", "Culture", false, 1250000, actions);
+    registry.addProject(library);
+    registry.processAll();
+    ASSERT_TRUE(library->isFunded());
+    ASSERT_EQ(library->getBudget(), 2000000);
+    ASSERT_TRUE(library->isCompleted());
+    return true;
+}
+
 int main() {
     RUN_TEST(GovernmentTest, InfrastructureProjectApproval);
     RUN_TEST(GovernmentTest, EducationBudgetCut);
     RUN_TEST(GovernmentTest, ProjectCompletionWorkflow);
     RUN_TEST(GovernmentTest, ConditionalBudgetApproval);
     RUN_TEST(GovernmentTest, InsufficientBudgetRejection);
+    RUN_TEST(GovernmentTest, MultiActionProject);
     return 0;
 }
