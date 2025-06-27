@@ -36,6 +36,7 @@ public:
     void setFunded(bool funded) { is_funded = funded; }
     void setBudget(double amount) { budget = amount; }
     void setCompleted(bool completed) { is_completed = completed; }
+    void setDepartment(const std::string &dept) { department = dept; }
 
     void process() {
         for (auto *action : actions) {
@@ -87,6 +88,15 @@ public:
         }
     }
     ~ConditionalApproval() { delete action; }
+};
+
+class DepartmentTransfer : public ProjectAction {
+    std::string new_department;
+public:
+    DepartmentTransfer(const std::string &dept) : new_department(dept) {}
+    void execute(GovernmentProject &project) override {
+        project.setDepartment(new_department);
+    }
 };
 
 class ProjectRegistry {
@@ -174,6 +184,16 @@ TEST(GovernmentTest, MultiActionProject) {
     return true;
 }
 
+TEST(GovernmentTest, DepartmentTransfer) {
+    ProjectRegistry registry;
+    std::vector<ProjectAction*> actions = { new DepartmentTransfer("Urban Development") };
+    GovernmentProject* park = new GovernmentProject("City Park", "Environment", true, 500000, actions);
+    registry.addProject(park);
+    registry.processAll();
+    ASSERT_EQ(park->getDepartment(), "Urban Development");
+    return true;
+}
+
 int main() {
     RUN_TEST(GovernmentTest, InfrastructureProjectApproval);
     RUN_TEST(GovernmentTest, EducationBudgetCut);
@@ -181,5 +201,6 @@ int main() {
     RUN_TEST(GovernmentTest, ConditionalBudgetApproval);
     RUN_TEST(GovernmentTest, InsufficientBudgetRejection);
     RUN_TEST(GovernmentTest, MultiActionProject);
+    RUN_TEST(GovernmentTest, DepartmentTransfer);
     return 0;
 }
