@@ -16,6 +16,7 @@ class GovernmentProject {
     std::string department;
     bool is_funded;
     double budget;
+    bool is_completed;
     std::vector<ProjectAction*> actions;
 
 public:
@@ -23,15 +24,18 @@ public:
                      bool funded, double budget_amount,
                      const std::vector<ProjectAction*> &acts)
         : project_name(name), department(dept),
-          is_funded(funded), budget(budget_amount), actions(acts) {}
+          is_funded(funded), budget(budget_amount),
+          is_completed(false), actions(acts) {}
 
     std::string getProjectName() const { return project_name; }
     std::string getDepartment() const { return department; }
     bool isFunded() const { return is_funded; }
     double getBudget() const { return budget; }
+    bool isCompleted() const { return is_completed; }
 
     void setFunded(bool funded) { is_funded = funded; }
     void setBudget(double amount) { budget = amount; }
+    void setCompleted(bool completed) { is_completed = completed; }
 
     void process() {
         for (auto *action : actions) {
@@ -60,6 +64,29 @@ public:
     void execute(GovernmentProject &project) override {
         project.setBudget(project.getBudget() + adjustment);
     }
+};
+
+class CompleteProject : public ProjectAction {
+public:
+    void execute(GovernmentProject &project) override {
+        if (project.isFunded()) {
+            project.setCompleted(true);
+        }
+    }
+};
+
+class ConditionalApproval : public ProjectAction {
+    ProjectAction* action;
+    double min_budget;
+public:
+    ConditionalApproval(ProjectAction* act, double budget)
+        : action(act), min_budget(budget) {}
+    void execute(GovernmentProject &project) override {
+        if (project.getBudget() >= min_budget) {
+            action->execute(project);
+        }
+    }
+    ~ConditionalApproval() { delete action; }
 };
 
 class ProjectRegistry {
@@ -101,8 +128,41 @@ TEST(GovernmentTest, EducationBudgetCut) {
     return true;
 }
 
+TEST(GovernmentTest, ProjectCompletionWorkflow) {
+    ProjectRegistry registry;
+    std::vector<ProjectAction*> actions = { new CompleteProject() };
+    GovernmentProject* hospital = new GovernmentProject("City Hospital", "Health", true, 2000000, actions);
+    registry.addProject(hospital);
+    registry.processAll();
+    ASSERT_TRUE(hospital->isCompleted());
+    return true;
+}
+
+TEST(GovernmentTest, ConditionalBudgetApproval) {
+    ProjectRegistry registry;
+    std::vector<ProjectAction*> actions = { new ConditionalApproval(new ApproveFunding(), 1000000) };
+    GovernmentProject* highway = new GovernmentProject("Highway Expansion", "Transportation", false, 1200000, actions);
+    registry.addProject(highway);
+    registry.processAll();
+    ASSERT_TRUE(highway->isFunded());
+    return true;
+}
+
+TEST(GovernmentTest, InsufficientBudgetRejection) {
+    ProjectRegistry registry;
+    std::vector<ProjectAction*> actions = { new ConditionalApproval(new ApproveFunding(), 5000000) };
+    GovernmentProject* airport = new GovernmentProject("Airport Renovation", "Transportation", false, 3000000, actions);
+    registry.addProject(airport);
+    registry.processAll();
+    ASSERT_TRUE(!airport->isFunded());
+    return true;
+}
+
 int main() {
     RUN_TEST(GovernmentTest, InfrastructureProjectApproval);
     RUN_TEST(GovernmentTest, EducationBudgetCut);
+    RUN_TEST(GovernmentTest, ProjectCompletionWorkflow);
+    RUN_TEST(GovernmentTest, ConditionalBudgetApproval);
+    RUN_TEST(GovernmentTest, InsufficientBudgetRejection);
     return 0;
 }
