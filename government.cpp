@@ -99,6 +99,13 @@ public:
     }
 };
 
+class BudgetFreeze : public ProjectAction {
+public:
+    void execute(GovernmentProject &project) override {
+        project.setBudget(0);
+    }
+};
+
 class ProjectRegistry {
     std::vector<GovernmentProject*> projects;
 public:
@@ -194,6 +201,16 @@ TEST(GovernmentTest, DepartmentTransfer) {
     return true;
 }
 
+TEST(GovernmentTest, BudgetFreezeAction) {
+    ProjectRegistry registry;
+    std::vector<ProjectAction*> actions = { new BudgetFreeze() };
+    GovernmentProject* museum = new GovernmentProject("National Museum", "Culture", true, 3000000, actions);
+    registry.addProject(museum);
+    registry.processAll();
+    ASSERT_EQ(museum->getBudget(), 0);
+    return true;
+}
+
 int main() {
     RUN_TEST(GovernmentTest, InfrastructureProjectApproval);
     RUN_TEST(GovernmentTest, EducationBudgetCut);
@@ -202,5 +219,6 @@ int main() {
     RUN_TEST(GovernmentTest, InsufficientBudgetRejection);
     RUN_TEST(GovernmentTest, MultiActionProject);
     RUN_TEST(GovernmentTest, DepartmentTransfer);
+    RUN_TEST(GovernmentTest, BudgetFreezeAction);
     return 0;
 }
